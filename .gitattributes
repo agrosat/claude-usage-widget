@@ -1,0 +1,5 @@
+# Scripts do Windows precisam de CRLF (o cmd.exe se perde em labels com LF).
+*.cmd text eol=crlf
+*.vbs text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
