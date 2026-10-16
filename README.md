@@ -81,18 +81,32 @@ Microsoft Store (o que só abre a loja) é ignorado. Para forçar um Python, def
 
 1. Sem QGIS: instale o Python 3.8+ pelo [python.org](https://www.python.org/downloads/) e rode
    `py -m pip install -r requirements.txt`. Com QGIS, pule este passo.
-2. Copie a pasta para `C:\Users\<usuario>\.claude\usage-widget`.
-3. Em `~/.claude/settings.json`, adicione (troque `<usuario>`, e use **barras normais**):
+2. Baixe o projeto para uma pasta sua. Pode ser qualquer pasta em que o seu usuário consiga
+   gravar, porque o widget guarda os dados ao lado dos scripts. **Não use `C:\Program Files`.**
+   A sugestão é `%LOCALAPPDATA%\Programs`, onde ficam os programas instalados só para o seu usuário:
+
+   ```
+   cd %LOCALAPPDATA%\Programs
+   git clone https://github.com/agrosat/claude-usage-widget.git
+   ```
+
+   Sem Git, baixe o ZIP pelo botão **Code → Download ZIP** e extraia em
+   `%LOCALAPPDATA%\Programs\claude-usage-widget`.
+3. Em `~/.claude/settings.json`, adicione o caminho do `statusline.ps1` (troque `<usuario>` e
+   use **barras normais**):
 
    ```json
    "statusLine": {
      "type": "command",
-     "command": "powershell -NoProfile -File C:/Users/<usuario>/.claude/usage-widget/statusline.ps1"
+     "command": "powershell -NoProfile -File C:/Users/<usuario>/AppData/Local/Programs/claude-usage-widget/statusline.ps1"
    }
    ```
 
 4. Dê dois cliques em `iniciar-widget.vbs`. Para abrir com o Windows, use a opção do menu
    (clique direito no cartão ou nos ícones).
+
+Se um dia mudar a pasta de lugar, atualize o `settings.json` e desmarque e marque de novo
+"Iniciar com o Windows", porque o atalho guarda o caminho antigo.
 
 ## Solução de problemas
 

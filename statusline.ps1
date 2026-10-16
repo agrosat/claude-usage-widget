@@ -1,5 +1,5 @@
 # Ponte entre a statusline do Claude Code e o statusline.py.
-# Usado via: powershell -NoProfile -File C:/Users/<usuario>/.claude/usage-widget/statusline.ps1
+# Usado via: powershell -NoProfile -File C:/Users/<usuario>/AppData/Local/Programs/claude-usage-widget/statusline.ps1
 $utf8 = New-Object System.Text.UTF8Encoding $false
 [Console]::InputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
