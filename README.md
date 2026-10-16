@@ -33,7 +33,10 @@ widget.pyw (PyQt5) ──lê a cada 5 s──> usage.json + history.jsonl
 ```
 
 Os dados só mudam enquanto o Claude Code está em uso, porque a statusline roda a cada resposta.
-Campos ausentes no JSON aparecem como "—". Depois do `resets_at`, o widget mostra 0%.
+Campos ausentes no JSON aparecem como "—". Uma exceção: o Claude Code não envia os limites
+5h/7d no início de cada sessão (antes da primeira resposta) nem depois do reset de uma janela.
+Nesses casos o widget mantém a última leitura, em cinza se tiver mais de 15 min, e mostra 0%
+quando o `resets_at` já passou.
 
 > **Os limites 5h e 7d só aparecem para assinantes Pro/Max.** Segundo a
 > [documentação da statusline](https://code.claude.com/docs/en/statusline), o campo

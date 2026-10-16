@@ -618,7 +618,7 @@ class Widget:
             return
         five = effective_pct(u.get("five_hour_pct"), u.get("five_hour_resets_at"), now)
         seven = effective_pct(u.get("seven_day_pct"), u.get("seven_day_resets_at"), now)
-        stale = now - (u.get("updated_at") or 0) > STALE_S
+        stale = now - (u.get("limits_at") or u.get("updated_at") or 0) > STALE_S
 
         def pct(v):
             return "—" if v is None else f"{round(v)}%"

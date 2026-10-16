@@ -38,7 +38,29 @@ def write_atomic(path, text):
     os.replace(tmp, path)
 
 
+def load_previous():
+    try:
+        with open(USAGE, encoding="utf-8") as f:
+            prev = json.load(f)
+        return prev if isinstance(prev, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def keep_limits(state, prev, now):
+    """O Claude Code omite cada janela de rate_limits no início da sessão (antes da primeira
+    resposta) e depois do reset dela. Nesses casos mantém a última leitura em vez de apagar;
+    se o reset já passou, a janela zerou."""
+    for prefix in ("five_hour", "seven_day"):
+        pct, resets = f"{prefix}_pct", f"{prefix}_resets_at"
+        if state[pct] is None and prev.get(pct) is not None:
+            state[pct], state[resets] = prev[pct], prev.get(resets)
+            if state[resets] and now >= state[resets]:
+                state[pct] = 0
+
+
 def main():
+    prev = load_previous()
     raw = sys.stdin.buffer.read().decode("utf-8-sig", errors="replace")
     try:
         data = json.loads(raw)
@@ -59,6 +81,10 @@ def main():
         "seven_day_pct": dig(data, "rate_limits.seven_day.used_percentage"),
         "seven_day_resets_at": dig(data, "rate_limits.seven_day.resets_at"),
     }
+    # quando chegou a última leitura real dos limites (o widget usa para marcar dado antigo)
+    fresh = state["five_hour_pct"] is not None or state["seven_day_pct"] is not None
+    state["limits_at"] = now if fresh else prev.get("limits_at", prev.get("updated_at"))
+    keep_limits(state, prev, now)
     write_atomic(USAGE, json.dumps(state, ensure_ascii=False, indent=2))
 
     try:
