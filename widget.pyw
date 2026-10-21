@@ -102,7 +102,7 @@ def fmt_age(ts, now):
 
 
 def paint_gauge(p, x, y, width, thick, pct, number_px, label=None, label_px=0,
-                stale=False, percent_sign=True, track=TRACK, number_drop=0):
+                stale=False, percent_sign=True, track=TRACK, number_drop=0, label_color=MUTED):
     """Desenha um semicírculo de 180° com o número no centro (e rótulo opcional abaixo).
 
     Usado pelo painel, pelos ícones da bandeja e pelo mini-cartão da barra de tarefas.
@@ -141,7 +141,7 @@ def paint_gauge(p, x, y, width, thick, pct, number_px, label=None, label_px=0,
         font.setBold(False)
         font.setPixelSize(int(label_px))
         p.setFont(font)
-        p.setPen(QColor(MUTED))
+        p.setPen(QColor(label_color))
         p.drawText(QRect(int(x), base, int(width), int(label_px * 1.6)),
                    Qt.AlignHCenter | Qt.AlignTop, label)
     return base
@@ -502,10 +502,12 @@ class MiniCard(QWidget):
         top = (self.height() - gw * 0.5 - self.LABEL_PX * line * s) / 2
         base = top + gw / 2
         self.paint_logo(p, self.MARGIN * s, top, base)
+        # no compacto: arco mais fino e rótulo quase branco, para ler melhor em tamanho menor
+        thick, label_color = (3.5, "#d0d7de") if self.compact else (5, MUTED)
         for i, (pct, label) in enumerate(zip(self.values, ("5h", "7d"))):
             x = (self.MARGIN + self.LOGO_W) * s + i * (gw + self.GAP * s)
-            paint_gauge(p, x, top, gw, 5 * s, pct, self.NUMBER_PX * s, label, self.LABEL_PX * s,
-                        stale=self.stale, track="#5a636e")
+            paint_gauge(p, x, top, gw, thick * s, pct, self.NUMBER_PX * s, label, self.LABEL_PX * s,
+                        stale=self.stale, track="#5a636e", label_color=label_color)
 
     def paint_logo(self, p, x, top, base):
         """Asterisco radiante em terracota (referência ao Claude) com "AI" embaixo,
