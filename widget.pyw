@@ -505,7 +505,7 @@ class MiniCard(QWidget):
         # no compacto: arco mais fino, rótulo quase branco e número sem "%" (maior), para ler
         # melhor em tamanho menor
         if self.compact:
-            thick, number_px, label_color, sign = 3.5, 11, "#d0d7de", False
+            thick, number_px, label_color, sign = 3.5, 12, "#d0d7de", False
         else:
             thick, number_px, label_color, sign = 5, self.NUMBER_PX, MUTED, True
         for i, (pct, label) in enumerate(zip(self.values, ("5h", "7d"))):
