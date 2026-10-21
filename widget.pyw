@@ -147,6 +147,49 @@ def paint_gauge(p, x, y, width, thick, pct, number_px, label=None, label_px=0,
     return base
 
 
+def paint_gauge240(p, x, y, r, thick, pct, number_px, label, label_px, stale=False,
+                   percent_sign=True, track=TRACK, label_color=MUTED, number_lift=0.15):
+    """Medidor de 240° (aberto embaixo), com o número no centro e o rótulo na abertura.
+
+    Usado pelo mini-cartão da barra de tarefas. Ocupa 2r + thick de largura; na altura,
+    r + thick/2 acima do centro e r/2 + thick/2 abaixo (o rótulo pode passar um pouco disso).
+    """
+    p.setRenderHint(QPainter.Antialiasing)
+    cx, cy = x + r + thick / 2, y + r + thick / 2
+    arc = QRectF(cx - r, cy - r, 2 * r, 2 * r)
+    pen = QPen(QColor(track), thick, Qt.SolidLine, Qt.RoundCap)
+    p.setPen(pen)
+    p.drawArc(arc, 210 * 16, -240 * 16)
+    if pct:
+        pen.setColor(QColor(GRAY if stale else level_color(pct)))
+        p.setPen(pen)
+        p.drawArc(arc, 210 * 16, -int(240 * 16 * min(pct, 100) / 100))
+
+    font = QFont("Segoe UI")
+    font.setBold(True)
+    if pct is None:
+        text = "—"
+    else:
+        text = f"{round(pct)}%" if percent_sign else str(round(pct))
+    # encolhe o número até caber no vão interno do arco (ex.: "100%")
+    inner = (2 * r - thick) * 0.8
+    while number_px > 6:
+        font.setPixelSize(int(number_px))
+        if QFontMetrics(font).horizontalAdvance(text) <= inner:
+            break
+        number_px -= 0.5
+    p.setFont(font)
+    p.setPen(QColor(FG))
+    p.drawText(QRectF(cx - r, cy - number_lift * r - number_px * 0.7, 2 * r, number_px * 1.4),
+               Qt.AlignCenter, text)
+    font.setBold(False)
+    font.setPixelSize(int(label_px))
+    p.setFont(font)
+    p.setPen(QColor(label_color))
+    p.drawText(QRectF(cx - r, cy + 0.5 * r - label_px * 0.7, 2 * r, label_px * 1.4),
+               Qt.AlignCenter, label)
+
+
 def make_gauge_icon(pct, stale):
     """Ícone da bandeja: mini semicírculo com o número (sem %, para caber em 16 px)."""
     size = 64
@@ -418,16 +461,20 @@ def fullscreen_app_active():
 
 
 class MiniCard(QWidget):
-    """Dois mini semicírculos (5h e 7d) desenhados sobre a barra de tarefas.
+    """Dois mini medidores de 240° (5h e 7d) desenhados sobre a barra de tarefas.
 
     A janela é "dona" (owner) da barra de tarefas: assim o Windows a mantém sempre
     acima dela, sem disputar o topo. Fica encostada à esquerda da bandeja de ícones;
     não empurra os ícones dos apps, então pode cobri-los se a barra encher.
     """
 
-    GAUGE_W, GAP, MARGIN, LOGO_W = 40, 6, 4, 26  # em px a 100% de escala
-    NUMBER_PX, LABEL_PX = 10, 11
+    GAP, MARGIN, LOGO_W = 6, 4, 26  # em px a 100% de escala
+    LABEL_PX = 11  # rótulo "AI" do logo
     LOGO_COLOR = "#d97757"  # terracota do Claude
+    # (folga vertical, espessura do arco, número, rótulo, escala do logo) em px a 100%.
+    # O compacto é para a barra com "botões menores" (~32 px em vez de 48).
+    NORMAL = (5, 5, 12, 11, 1.0)
+    COMPACT = (4, 3, 9, 9, 0.7)
 
     def __init__(self, on_click, menu):
         super().__init__(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -439,8 +486,8 @@ class MiniCard(QWidget):
         self.values = (None, None)
         self.stale = False
         self.hover = False
-        self.scale = 1.0
-        self.compact = False
+        self.scale = 1.0  # escala do logo, margens e espaçamentos
+        self.layout = None
         self.owner = None
         self.timer = QTimer(self, interval=1000, timeout=self.place)
         self.timer.start()
@@ -465,17 +512,21 @@ class MiniCard(QWidget):
             self.hide()
             return
         h = bar_rect.height()
-        # com "botões menores" a barra fica mais baixa (~32 px em vez de 48): encolhe o cartão
-        # para caber. Recalculado a cada segundo, acompanha a troca sem reiniciar.
-        need = (self.GAUGE_W * 0.5 + self.LABEL_PX * 1.3) * scale  # arco + rótulo "5h"
-        fit = min(1.0, (h - 8 * scale) / need)  # 4 px de folga em cima e embaixo
-        self.compact = fit < 1
-        scale *= fit
-        if scale != self.scale:
-            self.scale = scale
+        # o tamanho dos medidores sai da altura da barra; recalculado a cada segundo,
+        # acompanha a troca de tamanho da barra sem reiniciar
+        compact = h < 40 * scale
+        pad, thick, number_px, label_px, logo = self.COMPACT if compact else self.NORMAL
+        pad, thick, number_px, label_px = (v * scale for v in (pad, thick, number_px, label_px))
+        below = max(thick / 2, label_px * 0.4)  # abaixo do centro: ponta do arco ou rótulo
+        r = (h - 2 * pad - thick / 2 - below) / 1.5  # 240°: r acima do centro, r/2 abaixo
+        layout = (compact, pad, thick, number_px, label_px, r)
+        if layout != self.layout:
+            self.layout = layout
+            self.scale = logo * scale
             self.update()
-        w = int((self.LOGO_W + 2 * self.GAUGE_W + self.GAP + 2 * self.MARGIN) * scale)
-        x = notify.left() - w - int(self.MARGIN * scale)
+        s = self.scale
+        w = int((self.LOGO_W + self.GAP + 2 * self.MARGIN) * s + 2 * (2 * r + thick))
+        x = notify.left() - w - int(self.MARGIN * s)
         target = QRect(x, bar_rect.top(), w, h)
         if self.geometry() != target:
             self.setGeometry(target)
@@ -496,23 +547,19 @@ class MiniCard(QWidget):
         p.setBrush(bg)
         p.drawRoundedRect(self.rect().adjusted(0, int(4 * s), 0, -int(4 * s)), 4 * s, 4 * s)
 
-        gw = self.GAUGE_W * s
-        # centraliza arco + rótulo (no compacto, pela altura real do texto, sem a folga de baixo)
-        line = 1.3 if self.compact else 1.6
-        top = (self.height() - gw * 0.5 - self.LABEL_PX * line * s) / 2
-        base = top + gw / 2
-        self.paint_logo(p, self.MARGIN * s, top, base)
-        # no compacto: arco mais fino, rótulo quase branco e número sem "%" (maior), para ler
-        # melhor em tamanho menor
-        if self.compact:
-            thick, number_px, label_color, sign = 3.5, 12, "#d0d7de", False
-        else:
-            thick, number_px, label_color, sign = 5, self.NUMBER_PX, MUTED, True
+        if not self.layout:
+            return
+        compact, top, thick, number_px, label_px, r = self.layout
+        gw = 2 * r + thick
+        self.paint_logo(p, self.MARGIN * s, top, self.height() - top - self.LABEL_PX * 1.25 * s)
+        # no compacto: rótulo quase branco, número sem "%" e um pouco mais alto (longe do
+        # rótulo), para ler melhor em tamanho menor
+        label_color, sign, lift = ("#d0d7de", False, 0.22) if compact else (MUTED, True, 0.15)
         for i, (pct, label) in enumerate(zip(self.values, ("5h", "7d"))):
             x = (self.MARGIN + self.LOGO_W) * s + i * (gw + self.GAP * s)
-            paint_gauge(p, x, top, gw, thick * s, pct, number_px * s, label, self.LABEL_PX * s,
-                        stale=self.stale, percent_sign=sign, track="#5a636e",
-                        label_color=label_color)
+            paint_gauge240(p, x, top, r, thick, pct, number_px, label, label_px, stale=self.stale,
+                           percent_sign=sign, track="#5a636e", label_color=label_color,
+                           number_lift=lift)
 
     def paint_logo(self, p, x, top, base):
         """Asterisco radiante em terracota (referência ao Claude) com "AI" embaixo,
