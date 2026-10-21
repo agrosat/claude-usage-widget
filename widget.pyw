@@ -468,7 +468,7 @@ class MiniCard(QWidget):
         # com "botões menores" a barra fica mais baixa (~32 px em vez de 48): encolhe o cartão
         # para caber. Recalculado a cada segundo, acompanha a troca sem reiniciar.
         need = (self.GAUGE_W * 0.5 + self.LABEL_PX * 1.3) * scale  # arco + rótulo "5h"
-        fit = min(1.0, (h - 4 * scale) / need)  # 2 px de folga em cima e embaixo
+        fit = min(1.0, (h - 8 * scale) / need)  # 4 px de folga em cima e embaixo
         self.compact = fit < 1
         scale *= fit
         if scale != self.scale:
@@ -502,12 +502,17 @@ class MiniCard(QWidget):
         top = (self.height() - gw * 0.5 - self.LABEL_PX * line * s) / 2
         base = top + gw / 2
         self.paint_logo(p, self.MARGIN * s, top, base)
-        # no compacto: arco mais fino e rótulo quase branco, para ler melhor em tamanho menor
-        thick, label_color = (3.5, "#d0d7de") if self.compact else (5, MUTED)
+        # no compacto: arco mais fino, rótulo quase branco e número sem "%" (maior), para ler
+        # melhor em tamanho menor
+        if self.compact:
+            thick, number_px, label_color, sign = 3.5, 13, "#d0d7de", False
+        else:
+            thick, number_px, label_color, sign = 5, self.NUMBER_PX, MUTED, True
         for i, (pct, label) in enumerate(zip(self.values, ("5h", "7d"))):
             x = (self.MARGIN + self.LOGO_W) * s + i * (gw + self.GAP * s)
-            paint_gauge(p, x, top, gw, thick * s, pct, self.NUMBER_PX * s, label, self.LABEL_PX * s,
-                        stale=self.stale, track="#5a636e", label_color=label_color)
+            paint_gauge(p, x, top, gw, thick * s, pct, number_px * s, label, self.LABEL_PX * s,
+                        stale=self.stale, percent_sign=sign, track="#5a636e",
+                        label_color=label_color)
 
     def paint_logo(self, p, x, top, base):
         """Asterisco radiante em terracota (referência ao Claude) com "AI" embaixo,
