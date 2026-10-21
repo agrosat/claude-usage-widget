@@ -127,6 +127,7 @@ Se um dia mudar a pasta de lugar, atualize o `settings.json` e desmarque e marqu
 - O Windows 11 não tem API para widgets na barra de tarefas. O cartão é uma janela "owned" pela
   `Shell_TrayWnd`, reposicionada a cada 1 s. Ele some com app em tela cheia, com a barra
   oculta (autohide) ou com a barra vertical, e pode cobrir os ícones dos apps se a barra estiver cheia.
+  Com a barra no tamanho pequeno ("botões menores"), o cartão encolhe sozinho para caber.
 - Só testado em 1920×1080 com escala de 100%. Ainda não foi testado com vários monitores, no
   Windows 10 ou depois de reiniciar o Explorer.
 - Depois de reiniciar o widget, o Windows pode esconder os 2 ícones dentro do "^".

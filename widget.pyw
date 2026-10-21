@@ -440,6 +440,7 @@ class MiniCard(QWidget):
         self.stale = False
         self.hover = False
         self.scale = 1.0
+        self.compact = False
         self.owner = None
         self.timer = QTimer(self, interval=1000, timeout=self.place)
         self.timer.start()
@@ -463,9 +464,17 @@ class MiniCard(QWidget):
                 or bar_rect.height() > bar_rect.width()):
             self.hide()
             return
-        self.scale = scale
-        w = int((self.LOGO_W + 2 * self.GAUGE_W + self.GAP + 2 * self.MARGIN) * scale)
         h = bar_rect.height()
+        # com "botões menores" a barra fica mais baixa (~32 px em vez de 48): encolhe o cartão
+        # para caber. Recalculado a cada segundo, acompanha a troca sem reiniciar.
+        need = (self.GAUGE_W * 0.5 + self.LABEL_PX * 1.3) * scale  # arco + rótulo "5h"
+        fit = min(1.0, (h - 4 * scale) / need)  # 2 px de folga em cima e embaixo
+        self.compact = fit < 1
+        scale *= fit
+        if scale != self.scale:
+            self.scale = scale
+            self.update()
+        w = int((self.LOGO_W + 2 * self.GAUGE_W + self.GAP + 2 * self.MARGIN) * scale)
         x = notify.left() - w - int(self.MARGIN * scale)
         target = QRect(x, bar_rect.top(), w, h)
         if self.geometry() != target:
@@ -488,7 +497,9 @@ class MiniCard(QWidget):
         p.drawRoundedRect(self.rect().adjusted(0, int(4 * s), 0, -int(4 * s)), 4 * s, 4 * s)
 
         gw = self.GAUGE_W * s
-        top = (self.height() - gw * 0.5 - self.LABEL_PX * 1.6 * s) / 2  # centraliza arco + rótulo
+        # centraliza arco + rótulo (no compacto, pela altura real do texto, sem a folga de baixo)
+        line = 1.3 if self.compact else 1.6
+        top = (self.height() - gw * 0.5 - self.LABEL_PX * line * s) / 2
         base = top + gw / 2
         self.paint_logo(p, self.MARGIN * s, top, base)
         for i, (pct, label) in enumerate(zip(self.values, ("5h", "7d"))):
