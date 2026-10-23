@@ -53,6 +53,7 @@ quando o `resets_at` já passou.
 | `run-python.cmd` | acha um Python 3 instalado (ver abaixo) e roda o script com ele |
 | `widget.pyw` | o widget (PyQt5 + ctypes/winreg) |
 | `iniciar-widget.vbs` | abre o widget sem janela de console |
+| `docs/gerar_prints.py` | refaz os prints deste README a partir do próprio `widget.pyw` |
 
 ## Requisitos
 
@@ -132,6 +133,19 @@ Se um dia mudar a pasta de lugar, atualize o `settings.json` e desmarque e marqu
   Windows 10 ou depois de reiniciar o Explorer.
 - Depois de reiniciar o widget, o Windows pode esconder os 2 ícones dentro do "^".
 - O Windows limita o tooltip da bandeja a 127 caracteres.
+
+## Prints do README
+
+Depois de qualquer mudança visual no widget, refaça os prints de `docs/` e versione-os junto
+com a mudança. Na pasta do projeto:
+
+```
+run-python.cmd python-qt docs\gerar_prints.py
+```
+
+O cartão, o painel e os ícones saem com dados de exemplo, sempre iguais e sem caminhos nem custo
+reais. O `taskbar.png` é uma captura real da tela: deixe o widget aberto, com o cartão na barra,
+e confira o print antes de versionar.
 
 ## Licença
 

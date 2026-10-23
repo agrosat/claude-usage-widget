@@ -473,21 +473,13 @@ class MiniCard(QWidget):
             self.hide()
             return
         h = bar_rect.height()
-        # o tamanho dos medidores sai da altura da barra; recalculado a cada segundo,
-        # acompanha a troca de tamanho da barra sem reiniciar
-        compact = h < 40 * scale
-        pad, thick, number_px, label_px, logo = self.COMPACT if compact else self.NORMAL
-        pad, thick, number_px, label_px = (v * scale for v in (pad, thick, number_px, label_px))
-        below = max(thick / 2, label_px * 0.4)  # abaixo do centro: ponta do arco ou rótulo
-        r = (h - 2 * pad - thick / 2 - below) / 1.5  # 240°: r acima do centro, r/2 abaixo
-        layout = (compact, pad, thick, number_px, label_px, r)
+        # recalculado a cada segundo: acompanha a troca de tamanho da barra sem reiniciar
+        layout, logo_scale, w = self.compute_layout(h, scale)
         if layout != self.layout:
             self.layout = layout
-            self.scale = logo * scale
+            self.scale = logo_scale
             self.update()
-        s = self.scale
-        w = int((self.LOGO_W + self.GAP + 2 * self.MARGIN) * s + 2 * (2 * r + thick))
-        x = notify.left() - w - int(self.MARGIN * s)
+        x = notify.left() - w - int(self.MARGIN * self.scale)
         target = QRect(x, bar_rect.top(), w, h)
         if self.geometry() != target:
             self.setGeometry(target)
@@ -497,6 +489,21 @@ class MiniCard(QWidget):
         if self.owner != bar or user32.GetWindowLongPtrW(hwnd, GWLP_HWNDPARENT) != bar:
             user32.SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, bar)
             self.owner = bar
+
+    @classmethod
+    def compute_layout(cls, h, scale):
+        """Tamanho dos medidores a partir da altura da barra: (layout, escala do logo, largura).
+
+        Também usado pelo docs/gerar_prints.py, para o print sair igual ao cartão de verdade.
+        """
+        compact = h < 40 * scale
+        pad, thick, number_px, label_px, logo = cls.COMPACT if compact else cls.NORMAL
+        pad, thick, number_px, label_px = (v * scale for v in (pad, thick, number_px, label_px))
+        below = max(thick / 2, label_px * 0.4)  # abaixo do centro: ponta do arco ou rótulo
+        r = (h - 2 * pad - thick / 2 - below) / 1.5  # 240°: r acima do centro, r/2 abaixo
+        s = logo * scale
+        w = int((cls.LOGO_W + cls.GAP + 2 * cls.MARGIN) * s + 2 * (2 * r + thick))
+        return (compact, pad, thick, number_px, label_px, r), s, w
 
     def paintEvent(self, _):
         p = QPainter(self)
@@ -524,7 +531,7 @@ class MiniCard(QWidget):
 
     def paint_logo(self, p, x, top, base):
         """Asterisco radiante em terracota (referência ao Claude) com "AI" embaixo,
-        alinhado aos semicírculos: o desenho ocupa a altura do arco, o rótulo a do "5h"."""
+        alinhado aos medidores: o desenho ocupa a altura do arco, o rótulo a do "5h"."""
         s = self.scale
         w = self.LOGO_W * s
         cx, cy = x + w / 2, (top + base) / 2 + 1 * s

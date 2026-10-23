@@ -18,8 +18,9 @@
 !/widget.pyw
 !/iniciar-widget.vbs
 
-# Prints usados no README.
+# Prints usados no README e o script que os gera.
 !/docs/*.png
+!/docs/gerar_prints.py
 
 # Nunca versionar (dados locais: caminhos, session_id, custo).
 usage.json

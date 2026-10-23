@@ -3,11 +3,13 @@ rem Roda um Python 3 instalado na maquina. Uso: run-python.cmd [python|pythonw] 
 rem Ordem de busca: variavel CLAUDE_WIDGET_PYTHON (caminho do python.exe) -> launcher "py -3"
 rem -> python no PATH -> Python do QGIS mais recente. Com pythonw (o widget) so aceita um
 rem Python que consiga importar o PyQt5; a statusline (python) usa so a biblioteca padrao.
+rem python-qt: python.exe (com console) que importe o PyQt5, para o docs\gerar_prints.py.
 setlocal
 set "EXE=%~1"
 shift
 set "NEED_QT="
 if /i "%EXE%"=="pythonw" set "NEED_QT=1"
+if /i "%EXE%"=="python-qt" (set "NEED_QT=1" & set "EXE=python")
 set "PYTHONUTF8=1"
 
 if defined CLAUDE_WIDGET_PYTHON call :try "%CLAUDE_WIDGET_PYTHON%" && goto run
