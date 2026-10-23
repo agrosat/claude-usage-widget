@@ -105,7 +105,7 @@ def paint_gauge(p, x, y, width, thick, pct, number_px, label=None, label_px=0,
                 stale=False, percent_sign=True, track=TRACK, number_drop=0, label_color=MUTED):
     """Desenha um semicírculo de 180° com o número no centro (e rótulo opcional abaixo).
 
-    Usado pelo painel, pelos ícones da bandeja e pelo mini-cartão da barra de tarefas.
+    Usado pelos ícones da bandeja.
     Retorna o y da linha de base do arco.
     """
     p.setRenderHint(QPainter.Antialiasing)
@@ -151,7 +151,7 @@ def paint_gauge240(p, x, y, r, thick, pct, number_px, label, label_px, stale=Fal
                    percent_sign=True, track=TRACK, label_color=MUTED, number_lift=0.15):
     """Medidor de 240° (aberto embaixo), com o número no centro e o rótulo na abertura.
 
-    Usado pelo mini-cartão da barra de tarefas. Ocupa 2r + thick de largura; na altura,
+    Usado pelo mini-cartão da barra de tarefas e pelo painel. Ocupa 2r + thick de largura; na altura,
     r + thick/2 acima do centro e r/2 + thick/2 abaixo (o rótulo pode passar um pouco disso).
     """
     p.setRenderHint(QPainter.Antialiasing)
@@ -229,15 +229,16 @@ class Bar(QWidget):
 
 
 class Gauge(QWidget):
-    """Semicírculo de 180°: trilho cinza, arco colorido proporcional ao %, número no centro."""
+    """Medidor de 240°: trilho cinza, arco colorido proporcional ao %, número no centro."""
 
     THICK = 12
+    R = 56  # largura = 2R + THICK
 
     def __init__(self, label):
         super().__init__()
         self.label = label
         self.pct = None
-        self.setFixedSize(124, 92)
+        self.setFixedSize(2 * self.R + self.THICK, 100)
 
     def set_pct(self, pct):
         self.pct = pct
@@ -245,7 +246,7 @@ class Gauge(QWidget):
 
     def paintEvent(self, _):
         p = QPainter(self)
-        paint_gauge(p, 0, 0, self.width(), self.THICK, self.pct, 24, self.label, 12)
+        paint_gauge240(p, 0, 0, self.R, self.THICK, self.pct, 24, self.label, 12)
 
 
 class Spark(QWidget):
