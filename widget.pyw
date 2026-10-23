@@ -1,10 +1,10 @@
 """Widget de uso do Claude Code na área de notificação da barra de tarefas.
 
 Lê o usage.json gravado pelo statusline.py e mostra:
-- na bandeja: dois ícones de semicírculo (sessão 5h e semana 7d), coloridos por faixa;
-- na barra de tarefas: um mini-cartão com os dois semicírculos, encostado na bandeja;
+- na bandeja: dois ícones de medidor de 240° (sessão 5h e semana 7d), coloridos por faixa;
+- na barra de tarefas: um mini-cartão com os dois medidores, encostado na bandeja;
 - no tooltip: 5h, 7d e contexto com os horários de reset;
-- no painel (clique esquerdo): semicírculos, contagem regressiva, contexto, custo e gráfico.
+- no painel (clique esquerdo): medidores, contagem regressiva, contexto, custo e gráfico.
 
 Rodar com: run-python.cmd pythonw widget.pyw  (ou pelo iniciar-widget.vbs)
 """
@@ -101,57 +101,12 @@ def fmt_age(ts, now):
     return f"há {age // 3600} h {age % 3600 // 60:02d} min"
 
 
-def paint_gauge(p, x, y, width, thick, pct, number_px, label=None, label_px=0,
-                stale=False, percent_sign=True, track=TRACK, number_drop=0, label_color=MUTED):
-    """Desenha um semicírculo de 180° com o número no centro (e rótulo opcional abaixo).
-
-    Usado pelos ícones da bandeja.
-    Retorna o y da linha de base do arco.
-    """
-    p.setRenderHint(QPainter.Antialiasing)
-    d = width - thick
-    arc = QRect(int(x + thick / 2), int(y + thick / 2), int(d), int(d))
-    pen = QPen(QColor(track), thick, Qt.SolidLine, Qt.RoundCap)
-    p.setPen(pen)
-    p.drawArc(arc, 180 * 16, -180 * 16)
-    if pct:
-        pen.setColor(QColor(GRAY if stale else level_color(pct)))
-        p.setPen(pen)
-        p.drawArc(arc, 180 * 16, -int(180 * 16 * min(pct, 100) / 100))
-
-    base = int(y + thick / 2 + d / 2)
-    font = QFont("Segoe UI")
-    font.setBold(True)
-    if pct is None:
-        text = "—"
-    else:
-        text = f"{round(pct)}%" if percent_sign else str(min(round(pct), 99))
-    # encolhe o número até caber no vão interno do arco (ex.: "100%")
-    inner = (d - thick) * 0.8  # folga para as pontas arredondadas do arco
-    while number_px > 6:
-        font.setPixelSize(int(number_px))
-        if QFontMetrics(font).horizontalAdvance(text) <= inner:
-            break
-        number_px -= 0.5
-    p.setFont(font)
-    p.setPen(QColor(FG))
-    p.drawText(QRect(int(x), int(base + number_drop - number_px * 1.25), int(width), int(number_px * 1.25)),
-               Qt.AlignHCenter | Qt.AlignBottom, text)
-    if label:
-        font.setBold(False)
-        font.setPixelSize(int(label_px))
-        p.setFont(font)
-        p.setPen(QColor(label_color))
-        p.drawText(QRect(int(x), base, int(width), int(label_px * 1.6)),
-                   Qt.AlignHCenter | Qt.AlignTop, label)
-    return base
-
-
-def paint_gauge240(p, x, y, r, thick, pct, number_px, label, label_px, stale=False,
-                   percent_sign=True, track=TRACK, label_color=MUTED, number_lift=0.15):
+def paint_gauge240(p, x, y, r, thick, pct, number_px, label=None, label_px=0, stale=False,
+                   percent_sign=True, track=TRACK, label_color=MUTED, number_lift=0.15,
+                   max_number=None):
     """Medidor de 240° (aberto embaixo), com o número no centro e o rótulo na abertura.
 
-    Usado pelo mini-cartão da barra de tarefas e pelo painel. Ocupa 2r + thick de largura; na altura,
+    Usado pelo mini-cartão da barra de tarefas, pelo painel e pelos ícones da bandeja. Ocupa 2r + thick de largura; na altura,
     r + thick/2 acima do centro e r/2 + thick/2 abaixo (o rótulo pode passar um pouco disso).
     """
     p.setRenderHint(QPainter.Antialiasing)
@@ -170,7 +125,8 @@ def paint_gauge240(p, x, y, r, thick, pct, number_px, label, label_px, stale=Fal
     if pct is None:
         text = "—"
     else:
-        text = f"{round(pct)}%" if percent_sign else str(round(pct))
+        n = round(pct) if max_number is None else min(round(pct), max_number)
+        text = f"{n}%" if percent_sign else str(n)
     # encolhe o número até caber no vão interno do arco (ex.: "100%")
     inner = (2 * r - thick) * 0.8
     while number_px > 6:
@@ -182,6 +138,8 @@ def paint_gauge240(p, x, y, r, thick, pct, number_px, label, label_px, stale=Fal
     p.setPen(QColor(FG))
     p.drawText(QRectF(cx - r, cy - number_lift * r - number_px * 0.7, 2 * r, number_px * 1.4),
                Qt.AlignCenter, text)
+    if not label:
+        return
     font.setBold(False)
     font.setPixelSize(int(label_px))
     p.setFont(font)
@@ -191,14 +149,16 @@ def paint_gauge240(p, x, y, r, thick, pct, number_px, label, label_px, stale=Fal
 
 
 def make_gauge_icon(pct, stale):
-    """Ícone da bandeja: mini semicírculo com o número (sem %, para caber em 16 px)."""
-    size = 64
+    """Ícone da bandeja: mini medidor de 240° com o número (sem %, para caber em 16 px)."""
+    size, thick = 64, 10
+    r = (size - thick) / 2
     pm = QPixmap(size, size)
     pm.fill(Qt.transparent)
     p = QPainter(pm)
-    # arco na metade de cima; o número desce para dentro dele e ocupa a parte de baixo
-    paint_gauge(p, 0, 4, size, 12, pct, 32, stale=stale, percent_sign=False, track="#5a636e",
-                number_drop=24)
+    # sem rótulo: o número desce um pouco, para dentro da abertura de baixo; centraliza na altura
+    top = (size - (1.5 * r + thick)) / 2
+    paint_gauge240(p, 0, top, r, thick, pct, 34, stale=stale, percent_sign=False, track="#5a636e",
+                   number_lift=-0.1, max_number=99)
     p.end()
     return QIcon(pm)
 

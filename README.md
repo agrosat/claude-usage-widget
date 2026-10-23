@@ -11,9 +11,9 @@ limite da sessão (janela de 5h), limite semanal (janela de 7d), uso do contexto
 ## O que mostra
 
 - **Mini-cartão na barra de tarefas**, à esquerda da bandeja: logo e dois medidores de 240° (5h e 7d).
-- **Dois ícones na bandeja**: 5h e 7d, com o número dentro.
+- **Dois ícones na bandeja**: mini medidores de 240° (5h e 7d), com o número dentro.
 - **Tooltip** (no cartão e nos ícones): 5h, 7d, contexto, horários de reset e idade do dado.
-- **Painel** (clique esquerdo): semicírculos grandes, contagem regressiva, barra de contexto,
+- **Painel** (clique esquerdo): medidores de 240° grandes, contagem regressiva, barra de contexto,
   custo da sessão e gráfico do 5h nas últimas 5 horas.
 - **Menu** (clique direito): Mostrar painel · Mostrar na barra de tarefas · Iniciar com o Windows · Sair.
 
